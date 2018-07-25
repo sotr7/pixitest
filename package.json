@@ -1,0 +1,27 @@
+{
+  "name": "pixitest",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "dependencies": {
+    "live-server": "^1.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "test",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sotr7/pixitest.git"
+  },
+  "keywords": [
+    "pixi"
+  ],
+  "author": "Oleg Yagovtsev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sotr7/pixitest/issues"
+  },
+  "homepage": "https://github.com/sotr7/pixitest#readme"
+}

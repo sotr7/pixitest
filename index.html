@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Pixi test</title>
+  <script src="pixi/pixi.min.js"></script>
+</head>
+<body>
+  <h2>Демо Pixi</h2>
+  <div>
+    <p>(перетаскивайте точки, для перестройки, можно изменить колличество вершин)</p>
+    <input type="number" id="point_count" value=4>
+    <button onclick="cBezierApp.reinitBezier()">перерисовать</button>
+  </div>
+  
+  <script type="text/javascript">
+
+
+  var cGlobalFeatures = function() {
+    var a;
+    if (self !== undefined) {
+        a = self
+    } else {
+        a = window
+    }
+    a.gPrototypeFactory = function(b, d) {
+        var c = function() {};
+        c.prototype = b.prototype;
+        d.prototype = new c();
+        d.prototype.constructor = d
+    };
+    a.gArgumentApply = function(c, b) {
+        b.apply(c, Array.prototype.slice.call(arguments, 2))
+    };
+    
+    a.texture = PIXI.Texture.fromImage('./dot.png');
+    a.texture.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+    
+  }();
+
+  var cBezierCurve = (function () {
+    var _bezierCurve = {}
+    var pixiApp = null;
+    var bezier = null;
+    var dotNumber = 4;
+    var pointsContainer = [];
+    
+    _bezierCurve.init = function(pixi) {
+      pixiApp = pixi;
+      bezier = new PIXI.Graphics();
+      pixiApp.stage.addChild(bezier);
+    }
+    
+    _bezierCurve.reinit = function(dotNmbr) {
+      dotNumber = dotNmbr;
+      bezier = new PIXI.Graphics();
+      pixiApp.stage.addChild(bezier);
+    }
+    
+    _bezierCurve.clear = function() {
+      bezier.clear();
+    }
+    
+    _bezierCurve.createDotPath = function() {
+      pointsContainer = [];
+      for (var i = 0; i < (dotNumber && dotNumber > 3 ? dotNumber : 4); i++) {
+        var point = cBezierPoint(
+          Math.floor(Math.random() * pixiApp.screen.width),
+          Math.floor(Math.random() * pixiApp.screen.height),
+          pixiApp
+        );
+        console.log(point);
+        pointsContainer.push(point);
+      }
+    }
+    
+    _bezierCurve.showDotPath = function(){
+      bezier.lineStyle(2, 0xFFFF00, 1);
+      bezier.moveTo(pointsContainer[0].getPointX(),pointsContainer[0].getPointY())
+      for(var i = 1; i < (dotNumber && dotNumber > 3 ? dotNumber - 2 : 2); i++) {
+        bezier.bezierCurveTo(pointsContainer[i].getPointX(),pointsContainer[i].getPointY(),pointsContainer[i+1].getPointX(),pointsContainer[i+1].getPointY(),pointsContainer[i+2].getPointX(),pointsContainer[i+2].getPointY());
+      }
+    }
+    
+    return _bezierCurve;
+  })()
+  
+  var cBezierPoint = (function () {
+    var pixiApp;
+    var _bezierPoint = function(x, y, pixi) {
+      if(!pixiApp) {
+        pixiApp = pixi;
+      }
+    
+        this.point = new PIXI.Sprite(texture);
+        this.point.interactive = true;
+        this.point.buttonMode = true;
+        this.point.anchor.set(0.5);
+        this.point.scale.set(3);
+
+        // the pointer events
+        this.point
+            .on('pointerdown', this.onDragStart)
+            .on('pointerup', this.onDragEnd)
+            .on('pointerupoutside', this.onDragEnd)
+            .on('pointermove', this.onDragMove);
+
+ 
+        this.point.x = x;
+        this.point.y = y;
+
+        pixiApp.stage.addChild(this.point);
+    }
+    
+    _bezierPoint.prototype.getPointX = function() {
+      return this.point.x;
+    }
+    
+    _bezierPoint.prototype.setPointX = function(x) {
+      this.point.x = x;
+    }
+    
+    _bezierPoint.prototype.getPointY = function() {
+      return this.point.y;
+    }
+    
+    _bezierPoint.prototype.setPointY = function(y) {
+      this.point.y = y;
+    }
+    
+    _bezierPoint.prototype.onDragStart = function (event) {
+      this.data = event.data;
+      this.alpha = 0.5;
+      this.dragging = true;
+    }
+    
+    _bezierPoint.prototype.onDragEnd = function () {
+      this.alpha = 1;
+      this.dragging = false;
+      this.data = null;
+    }
+    
+    _bezierPoint.prototype.onDragMove = function () {
+      if (this.dragging) {
+        var newPosition = this.data.getLocalPosition(this.parent);
+        pixiApp.recalculatePath();
+        this.x = newPosition.x;
+        this.y = newPosition.y;
+      }
+    }
+    
+    var factory = function (x, y, pixiApp) {
+      return new _bezierPoint(x, y, pixiApp);
+    }
+    
+    return factory;
+  })()
+  
+  var cBezierApp = (function() {
+    var type = "WebGL";
+    var dotNumber = 4;
+    var pixiApp = null;
+    var bezierCurve = cBezierCurve;
+    
+    _app = {}
+    
+    _app.recalculatePath = function () {
+      bezierCurve.clear();
+      bezierCurve.showDotPath();
+    }
+    
+    _app.init = function() {
+      if (!PIXI.utils.isWebGLSupported()) {
+        type = "canvas"
+      }
+
+      PIXI.utils.sayHello(type);  
+      pixiApp = new PIXI.Application();
+      
+      dotNumber = parseInt(document.getElementById("point_count").value);
+      document.body.appendChild(pixiApp.view);
+      
+      bezierCurve.init(pixiApp, dotNumber);
+      bezierCurve.createDotPath();
+      bezierCurve.showDotPath();
+      pixiApp.recalculatePath = _app.recalculatePath;
+    }
+    
+    _app.reinitBezier = function() {
+      dotNumber = parseInt(document.getElementById("point_count").value);
+      pixiApp.stage.removeChildren();
+      
+      bezierCurve.reinit(dotNumber);
+      bezierCurve.createDotPath();
+      bezierCurve.showDotPath();
+    }
+    
+    return _app;
+  })()
+  
+  cBezierApp.init();
+
+    
+  </script>
+</body>
+</html>
